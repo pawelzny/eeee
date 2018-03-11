@@ -27,7 +27,8 @@ class Event(Generic[types.Event]):
     # noinspection PyArgumentList
     Toggle = Enum('Toggle', (('PAUSE', 'pause'), ('RESUME', 'resume')), module=__name__)
 
-    def __init__(self):
+    def __init__(self, name: str):
+        self.name = name
         self.pub_sub = tuple()
         self.__enable = True
 
@@ -37,8 +38,14 @@ class Event(Generic[types.Event]):
                 if (not ps.is_pause) and (ps.publisher is None or ps.publisher == publisher):
                     await ps.subscriber.receive(publisher.message)
 
-    def subscribe(self, publisher: Union[types.Publisher, None], subscriber: types.Subscriber):
-        self.pub_sub += (PubSub(publisher, subscriber),)
+    def subscribe(self, publisher: Union[types.Publisher, None] = None):
+        pub_sub = self.pub_sub
+
+        def wrapper(subscriber: types.Subscriber):
+            nonlocal pub_sub
+            pub_sub += (PubSub(publisher, subscriber),)
+            return subscriber
+        return wrapper
 
     def enable(self):
         self.__enable = True

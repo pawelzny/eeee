@@ -20,7 +20,7 @@ class Publisher(Generic[types.Publisher]):
     def __init__(self):
         self.clear()
 
-    def set_message(self, message: types.Message):
+    def set_payload(self, message: types.Message):
         self.message = message
 
     def clear(self):
