@@ -1,68 +1,103 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from enum import Enum
-from typing import Generic, Union
-
-from . import types
+from collections import namedtuple
+from typing import Any
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
 
 
-class PubSub(Generic[types.PubSub]):
-    def __init__(self, publisher: Union[types.Publisher, None],
-                 subscriber: types.Subscriber, is_pause=False):
-        self.publisher = publisher
-        self.subscriber = subscriber
-        self.is_pause = is_pause
+def subscribe(event: "Event", publisher: str = None):
+    """Decorator function which subscribe callable to event.
 
-    def pause(self):
-        self.is_pause = True
+    :example:
+        my_event = Event('MyEvent')
 
-    def resume(self):
-        self.is_pause = False
+        @subscribe(my_event, publisher='incoming_webhook')
+        async def incoming_webhook_handler(message, publisher, event):
+            # doo something
+            pass
+    :param event: Event Event object
+    :param publisher: str Name of message publisher
+    :return: decorator wrapper
+    """
+
+    def wrapper(subscriber: callable):
+        """Register subscriber to event.
+
+        :param subscriber:
+        :return: subscriber
+        """
+        # noinspection PyProtectedMember
+        event._reg_sub(subscriber, publisher)
+        return subscriber
+
+    return wrapper
 
 
-class Event(Generic[types.Event]):
-    # noinspection PyArgumentList
-    Toggle = Enum('Toggle', (('PAUSE', 'pause'), ('RESUME', 'resume')), module=__name__)
+class Event:
+    """Async event emitter.
 
-    def __init__(self, name: str):
+    Register subscribers to this event and publish message asynchronously.
+
+    :example:
+        my_event = Event('MyEvent')
+        result = await my_event.publish({'message': 'secret'}, 'secret publisher')
+    """
+
+    PubSub = namedtuple('PubSub', ['subscriber', 'publisher'])
+
+    def __init__(self, name: str = None):
+        if name is None:
+            name = self.__class__.__name__
         self.name = name
         self.pub_sub = tuple()
-        self.__enable = True
+        self.__is_enable = True
 
-    async def publish(self, publisher: types.Publisher):
-        if self.__enable:
+    @property
+    def is_enable(self):
+        return self.__is_enable
+
+    async def publish(self, message: Any, publisher: str = None):
+        """Propagate message to all interested in subscribers.
+
+        If publisher is not set, then broadcast is meant for all subscribers.
+        Any subscriber can listen to all or only to one publisher within event.
+
+        :param message: Any data type.
+        :param publisher: Name of publisher which sign a message.
+        :return: list or None if event is disabled.
+        """
+        if self.is_enable:
+            result = []
             for ps in self.pub_sub:
-                if (not ps.is_pause) and (ps.publisher is None or ps.publisher == publisher):
-                    await ps.subscriber.receive(publisher.message)
+                if ps.publisher is None or (publisher is not None and ps.publisher == publisher):
+                    result.append(await ps.subscriber(message=message,
+                                                      publisher=publisher,
+                                                      event=self.name))
+            return result
+        return None
 
-    def subscribe(self, publisher: Union[types.Publisher, None] = None):
-        pub_sub = self.pub_sub
-
-        def wrapper(subscriber: types.Subscriber):
-            nonlocal pub_sub
-            pub_sub += (PubSub(publisher, subscriber),)
-            return subscriber
-        return wrapper
+    def subscribe(self, publisher: str = None):
+        return subscribe(self, publisher)  # delegate to subscribe decorator
 
     def enable(self):
-        self.__enable = True
+        self.__is_enable = True
         return self
 
     def disable(self):
-        self.__enable = False
+        self.__is_enable = False
         return self
 
-    def _toggle(self, method: 'Toggle', *publisher: types.Publisher):
-        for pub in (p for p in publisher if p is not None):
-            for ps in (pub_sub for pub_sub in self.pub_sub if pub_sub.publisher is not None):
-                if ps.publisher == pub:
-                    getattr(ps.publisher, method.value)()
+    def toggle(self):
+        self.__is_enable = not self.__is_enable
+        return self
 
-    def pause(self, *publisher: types.Publisher):
-        self._toggle(self.Toggle.PAUSE, *publisher)
+    def _reg_sub(self, subscriber: callable, publisher: str = None):
+        """Append subscriber to list of subscribers.
 
-    def resume(self, *publisher: types.Publisher):
-        self._toggle(self.Toggle.RESUME, *publisher)
+        :param subscriber: Callable subscriber.
+        :param publisher: Optional name of publisher to listen to.
+        :return:
+        """
+        self.pub_sub += (self.PubSub(subscriber=subscriber, publisher=publisher),)

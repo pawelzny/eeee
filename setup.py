@@ -63,7 +63,7 @@ setup(
     author='Paweł Zadrożny',
     author_email='pawel.zny@gmail.com',
     url='https://github.com/pawelzny/eeee',
-    packages=find_packages(exclude=('bin', 'docs')),
+    packages=find_packages(exclude=('bin', 'docs', 'tests')),
     package_dir={'eeee': 'eeee'},
     include_package_data=True,
     use_scm_version=True,
