@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import asyncio
 from collections import namedtuple
-from typing import Any
+from typing import Any, Union
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
 
 
-def subscribe(event: "Event", publisher: str = None):
+def subscribe(event: "Event", publisher: "Publisher" = None):
     """Decorator function which subscribe callable to event.
 
     :example:
@@ -58,7 +59,7 @@ class Event:
     def is_enable(self):
         return self.__is_enable
 
-    async def publish(self, message: Any, publisher: str = None):
+    async def publish(self, message: Any, publisher: "Publisher" = None):
         """Propagate message to all interested in subscribers.
 
         If publisher is not set, then broadcast is meant for all subscribers.
@@ -78,7 +79,7 @@ class Event:
             return result
         return None
 
-    def subscribe(self, publisher: str = None):
+    def subscribe(self, publisher: "Publisher" = None):
         return subscribe(self, publisher)  # delegate to subscribe decorator
 
     def enable(self):
@@ -93,7 +94,7 @@ class Event:
         self.__is_enable = not self.__is_enable
         return self
 
-    def _reg_sub(self, subscriber: callable, publisher: str = None):
+    def _reg_sub(self, subscriber: callable, publisher: "Publisher" = None):
         """Append subscriber to list of subscribers.
 
         :param subscriber: Callable subscriber.
@@ -101,3 +102,43 @@ class Event:
         :return:
         """
         self.pub_sub += (self.PubSub(subscriber=subscriber, publisher=publisher),)
+
+
+class Publisher:
+    def __init__(self, name: str):
+        if not type(name) is str:
+            raise AttributeError(f'Attribute "name" must be type of String, '
+                                 f'{type(name)} was given.')
+        self.name = name
+        self.__id = f'{self.__class__}:{self.name}'
+        self.__id = str(self.__class__).replace("'>", f":{name}'>")
+
+    def __str__(self):
+        return str(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return str(self.id) == other
+
+    @property
+    def id(self):
+        return self.__id
+
+
+class EventLoop:
+    def __init__(self, *futures: Union["asyncio.Future", "asyncio.coroutine"]):
+        self.loop = asyncio.get_event_loop()
+        if len(futures) > 1:
+            self.futures = asyncio.gather(*futures, loop=self.loop, return_exceptions=True)
+        else:
+            self.futures = futures[0]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def run_until_complete(self):
+        return self.loop.run_until_complete(self.futures)

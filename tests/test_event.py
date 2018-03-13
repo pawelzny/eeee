@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from eeee.event import Event, subscribe
-from eeee.loop import run_until_complete
+from eeee import Event, subscribe
+from eeee.event import EventLoop, Publisher
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
@@ -69,15 +69,19 @@ class TestPublish:
     def test_publish_to_all(self):
         event = Event('publish_to_all')
 
+        # noinspection PyShadowingNames,PyUnusedLocal
         @event.subscribe()
         async def first_all(message, publisher, event):
             return [message, publisher, event]
 
+        # noinspection PyShadowingNames,PyUnusedLocal
         @event.subscribe()
         async def second_all(message, publisher, event):
             return [message, publisher, event]
 
-        result = run_until_complete(event.publish('test message'))
+        with EventLoop(event.publish('test message')) as loop:
+            result = loop.run_until_complete()
+
         assert len(result) == 2
         for r in result:
             assert r[0] == 'test message'
@@ -87,35 +91,43 @@ class TestPublish:
     def test_publish_to_specific(self):
         event = Event('publish_to_secret')
 
-        @event.subscribe(publisher='omit')
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher=Publisher('omit'))
         async def first_sp(message, publisher, event):
             return ['omitted', publisher, event]
 
-        @event.subscribe(publisher='secret')
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher=Publisher('secret'))
         async def second_sp(message, publisher, event):
             return ['received', publisher, event]
 
-        result = run_until_complete(event.publish('secret message', 'secret'))
+        with EventLoop(event.publish('secret message', Publisher('secret'))) as loop:
+            result = loop.run_until_complete()
+
         assert len(result) == 1
         result = result.pop()
         assert result[0] == 'received'
-        assert result[1] == 'secret'
+        assert result[1] == Publisher('secret')
         assert result[2] == 'publish_to_secret'
 
     def test_publish_to_all_but_specific(self):
         event = Event('publish_to_all_but_omit')
 
-        @event.subscribe(publisher='omit')
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher=Publisher('omit'))
         async def first_sp(message, publisher, event):
             return ['omitted', publisher, event]
 
+        # noinspection PyShadowingNames,PyUnusedLocal
         @event.subscribe()
         async def second_sp(message, publisher, event):
             return ['received', publisher, event]
 
-        result = run_until_complete(event.publish('secret message', 'broadcast'))
+        with EventLoop(event.publish('secret message', Publisher('broadcast'))) as loop:
+            result = loop.run_until_complete()
+
         assert len(result) == 1
         result = result.pop()
         assert result[0] == 'received'
-        assert result[1] == 'broadcast'
+        assert result[1] == Publisher('broadcast')
         assert result[2] == 'publish_to_all_but_omit'
