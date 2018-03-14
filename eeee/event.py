@@ -110,8 +110,8 @@ class Publisher:
             raise AttributeError(f'Attribute "name" must be type of String, '
                                  f'{type(name)} was given.')
         self.name = name
-        self.__id = f'{self.__class__}:{self.name}'
-        self.__id = str(self.__class__).replace("'>", f":{name}'>")
+        self.__template = str(self.__class__) + '{name}</class>'
+        self.__id = self.__template.format(name=self.name)
 
     def __str__(self):
         return str(self.id)
@@ -119,7 +119,9 @@ class Publisher:
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.id == other.id
-        return str(self.id) == other
+        if type(other) is str:
+            return self.id == self.__template.format(name=other)
+        return self == other
 
     @property
     def id(self):
