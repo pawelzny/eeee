@@ -113,3 +113,17 @@ def test_publish_to_all_but_specific():
     assert result[0] == 'received'
     assert result[1] == Publisher('broadcast')
     assert result[2] == 'publish_to_all_but_omit'
+
+
+def test_unsubscribe():
+    event = Event('unsubscribe_me')
+
+    # noinspection PyShadowingNames,PyUnusedLocal
+    @event.subscribe()
+    async def i_will_do_it(message, publisher, event):
+        return ['received', publisher, event]
+
+    assert len(event.pub_sub) == 1
+
+    event.unsubscribe(i_will_do_it)
+    assert len(event.pub_sub) == 0

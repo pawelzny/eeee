@@ -70,17 +70,20 @@ class Event:
         :return: list or None if event is disabled.
         """
         if self.is_enable:
-            result = []
+            coros = []
             for ps in self.pub_sub:
                 if ps.publisher is None or (publisher is not None and ps.publisher == publisher):
-                    result.append(await ps.subscriber(message=message,
-                                                      publisher=publisher,
-                                                      event=self.name))
-            return result
+                    coros.append(ps.subscriber(message, publisher, event=self.name))
+            if coros:
+                return await asyncio.gather(*coros, return_exceptions=True)
         return None
 
     def subscribe(self, publisher: "Publisher" = None):
         return subscribe(self, publisher)  # delegate to subscribe decorator
+
+    def unsubscribe(self, subscriber: callable, publisher: "Publisher" = None):
+        pub_sub = self.PubSub(subscriber=subscriber, publisher=publisher)
+        self.pub_sub = tuple(ps for ps in self.pub_sub if ps != pub_sub)
 
     def enable(self):
         self.__is_enable = True
