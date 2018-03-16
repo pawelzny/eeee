@@ -7,7 +7,7 @@ name = "pypi"
 
 [requires]
 
-python_version = "3.6"
+python_version = ">=3.4"
 
 
 [packages]
@@ -15,12 +15,14 @@ python_version = "3.6"
 
 [dev-packages]
 
-bumpversion = "==0.5.3"
-coverage = "==4.4.2"
-"flake8" = "==3.5.0"
-markdown = "==2.6.11"
-mock = "==2.0.0"
-sphinx = "==1.6.6"
-sphinx-rtd-theme = "==0.2.4"
-pytest = "==3.3.2"
-pytest-runner = "*"
+pytest = "*"
+coverage = "*"
+bumpversion = "*"
+"flake8" = "*"
+codecov = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
+tox-pyenv = "*"
+tox = "*"
+setuptools-scm = "*"
+twine = "*"

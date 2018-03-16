@@ -1,129 +1,165 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from eeee import Event, subscribe
-from eeee.event import EventLoop, Publisher
+import unittest
+from eeee import Event, subscribe, Publisher
+from eeee.loop import EventLoop
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
 
 
-def test_standalone_decorator():
-    event = Event('sub_standalone')
-    assert len(event.pub_sub) == 0
+class TestSubscribe(unittest.TestCase):
+    def test_standalone_decorator(self):
+        event = Event('sub standalone')
+        self.assertEqual(len(event.pub_sub), 0)
 
-    @subscribe(event)
-    async def simple_handler():
-        return 'simple_handler'
+        @subscribe(event)
+        async def simple_handler():
+            return 'simple_handler'
 
-    assert len(event.pub_sub) == 1
-    assert event.pub_sub[0].publisher is None
-    assert event.pub_sub[0].subscriber == simple_handler
+        self.assertEqual(len(event.pub_sub), 1)
+        self.assertIsNone(event.pub_sub[0].publisher)
+        self.assertIs(event.pub_sub[0].subscriber, simple_handler)
 
+    def test_standalone_decorator_with_set_publisher(self):
+        event = Event('sub to specific publisher')
+        self.assertEqual(len(event.pub_sub), 0)
 
-def test_decorator_with_set_publisher():
-    event = Event('sub_to_publisher')
-    assert len(event.pub_sub) == 0
+        @event.subscribe(publisher='specific')
+        async def nice_handler():
+            return 'nice_handler'
 
-    @event.subscribe(publisher='my_choice')
-    async def nice_handler():
-        return 'nice_handler'
+        self.assertEqual(len(event.pub_sub), 1)
+        self.assertEqual(event.pub_sub[0].publisher, 'specific')
+        self.assertEqual(event.pub_sub[0].publisher, Publisher('specific'))
+        self.assertIs(event.pub_sub[0].subscriber, nice_handler)
 
-    assert len(event.pub_sub) == 1
-    assert event.pub_sub[0].publisher == 'my_choice'
-    assert event.pub_sub[0].subscriber == nice_handler
+    def test_decorator_attached_to_event(self):
+        event = Event('builtin decorator')
+        self.assertEqual(len(event.pub_sub), 0)
 
+        @event.subscribe()
+        async def better_handler():
+            return 'better_handler'
 
-def test_builtin_decorator():
-    event = Event('builtin_decorator')
-    assert len(event.pub_sub) == 0
+        self.assertEqual(len(event.pub_sub), 1)
+        self.assertIsNone(event.pub_sub[0].publisher)
+        self.assertIs(event.pub_sub[0].subscriber, better_handler)
 
-    @event.subscribe()
-    async def better_handler():
-        return 'better_handler'
+    def test_unsubscribe(self):
+        event = Event('unsubscribe me')
 
-    assert len(event.pub_sub) == 1
-    assert event.pub_sub[0].publisher is None
-    assert event.pub_sub[0].subscriber == better_handler
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe()
+        async def i_will_do_it(message, publisher, event):
+            return ['received', publisher, event]
 
+        self.assertEqual(len(event.pub_sub), 1)
 
-def test_publish_to_all():
-    event = Event('publish_to_all')
+        event.unsubscribe(i_will_do_it)
+        self.assertEqual(len(event.pub_sub), 0)
 
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe()
-    async def first_all(message, publisher, event):
-        return [message, publisher, event]
+    def test_unsubscribe_with_publisher(self):
+        event = Event('unsubscribe nuke')
 
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe()
-    async def second_all(message, publisher, event):
-        return [message, publisher, event]
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(Publisher('nuke'))
+        async def i_feel_no_regret(message, publisher, event):
+            return ['received', publisher, event]
 
-    with EventLoop(event.publish('test message')) as loop:
-        result = loop.run_until_complete()
+        self.assertEqual(len(event.pub_sub), 1)
 
-    assert len(result) == 2
-    for r in result:
-        assert r[0] == 'test message'
-        assert r[1] is None
-        assert r[2] == 'publish_to_all'
-
-
-def test_publish_to_specific():
-    event = Event('publish_to_secret')
-
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe(publisher='omit')
-    async def first_sp(message, publisher, event):
-        return ['omitted', publisher, event]
-
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe(publisher='secret')
-    async def second_sp(message, publisher, event):
-        return ['received', publisher, event]
-
-    with EventLoop(event.publish('secret message', Publisher('secret'))) as loop:
-        result = loop.run_until_complete()
-
-    assert len(result) == 1
-    result = result.pop()
-    assert result[0] == 'received'
-    assert result[1] == Publisher('secret')
-    assert result[2] == 'publish_to_secret'
+        event.unsubscribe(i_feel_no_regret, Publisher('nuke'))
+        self.assertEqual(len(event.pub_sub), 0)
 
 
-def test_publish_to_all_but_specific():
-    event = Event('publish_to_all_but_omit')
+class TestPublishMessage(unittest.TestCase):
+    def test_publish_to_all(self):
+        event = Event('publish to all')
 
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe(publisher=Publisher('omit'))
-    async def first_sp(message, publisher, event):
-        return ['omitted', publisher, event]
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe()
+        async def first_all(message, publisher, event):
+            return [message, publisher, event]
 
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe()
-    async def second_sp(message, publisher, event):
-        return ['received', publisher, event]
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe()
+        async def second_all(message, publisher, event):
+            return [message, publisher, event]
 
-    with EventLoop(event.publish('secret message', Publisher('broadcast'))) as loop:
-        result = loop.run_until_complete()
+        with EventLoop(event.publish('test message')) as loop:
+            result = loop.run_until_complete()
 
-    assert len(result) == 1
-    result = result.pop()
-    assert result[0] == 'received'
-    assert result[1] == Publisher('broadcast')
-    assert result[2] == 'publish_to_all_but_omit'
+        self.assertEqual(len(result), 2)
+        for r in result:
+            self.assertEqual(r[0], 'test message')
+            self.assertIsNone(r[1])
+            self.assertEqual(r[2], 'publish to all')
 
+    def test_publish_to_specific(self):
+        event = Event('publish to secret')
 
-def test_unsubscribe():
-    event = Event('unsubscribe_me')
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher='omit')
+        async def first_sp(message, publisher, event):
+            return ['omitted', publisher, event]
 
-    # noinspection PyShadowingNames,PyUnusedLocal
-    @event.subscribe()
-    async def i_will_do_it(message, publisher, event):
-        return ['received', publisher, event]
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher='secret')
+        async def second_sp(message, publisher, event):
+            return ['received', publisher, event]
 
-    assert len(event.pub_sub) == 1
+        with EventLoop(event.publish('secret message', Publisher('secret'))) as loop:
+            result = loop.run_until_complete()
 
-    event.unsubscribe(i_will_do_it)
-    assert len(event.pub_sub) == 0
+        self.assertEqual(len(result), 1)
+        result = result.pop()
+        self.assertEqual(result[0], 'received')
+        self.assertEqual(result[1], Publisher('secret'))
+        self.assertEqual(result[2], 'publish to secret')
+
+    def test_publish_to_all_but_specific(self):
+        event = Event('publish to all but omit')
+
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe(publisher=Publisher('omit'))
+        async def first_sp(message, publisher, event):
+            return ['omitted', publisher, event]
+
+        # noinspection PyShadowingNames,PyUnusedLocal
+        @event.subscribe()
+        async def second_sp(message, publisher, event):
+            return ['received', publisher, event]
+
+        with EventLoop(event.publish('secret message', Publisher('broadcast'))) as loop:
+            result = loop.run_until_complete()
+
+        self.assertEqual(len(result), 1)
+        result = result.pop()
+        self.assertEqual(result[0], 'received')
+        self.assertEqual(result[1], Publisher('broadcast'))
+        self.assertEqual(result[2], 'publish to all but omit')
+
+    def test_publish_to_empty_event(self):
+        event = Event('I am empty inside :(')
+
+        self.assertEqual(len(event.pub_sub), 0)
+
+        with EventLoop(event.publish('enter the void')) as loop:
+            result = loop.run_until_complete()
+
+        self.assertIsNone(result)
+
+    def test_publish_on_disabled_event(self):
+        event = Event('disabled')
+        event.disable()
+
+        # noinspection PyShadowingNames
+        @event.subscribe()
+        async def funny_handler(message, publisher, event):
+            return [message, publisher, event]
+
+        with EventLoop(event.publish('sad message')) as loop:
+            result = loop.run_until_complete()
+
+        self.assertIsNone(result)

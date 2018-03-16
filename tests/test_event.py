@@ -1,27 +1,43 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import unittest
+
 from eeee import Event
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
 
 
-def test_enable():
-    event = Event('test_enable')
-    assert event.is_enable is True
+class TestEvent(unittest.TestCase):
+    def test_enable_by_default(self):
+        event = Event('Enable by default')
+        self.assertTrue(event.is_enable)
 
+    def test_enable(self):
+        event = Event('Enable manually')
+        event._Event__is_enable = False  # force override __is_enable property
+        self.assertFalse(event.is_enable)
 
-def test_disable():
-    event = Event('test_disable')
-    assert event.is_enable is True
-    event.disable()
-    assert event.is_enable is False
+        event.enable()
+        self.assertTrue(event.is_enable)
 
+    def test_disable(self):
+        event = Event('Disable manually')
+        self.assertTrue(event.is_enable)
 
-def test_toggle():
-    event = Event('test_toggle')
-    assert event.is_enable is True
-    event.toggle()
-    assert event.is_enable is False
-    event.toggle()
-    assert event.is_enable is True
+        event.disable()
+        self.assertFalse(event.is_enable)
+
+    def test_toggle(self):
+        event = Event('Toggle event')
+        self.assertTrue(event.is_enable)
+
+        event.toggle()
+        self.assertFalse(event.is_enable)
+
+        event.toggle()
+        self.assertTrue(event.is_enable)
+
+    def test_new_event_without_name(self):
+        event = Event()
+        self.assertEqual(event.name, 'Event')

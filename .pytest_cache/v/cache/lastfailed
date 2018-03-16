@@ -1,0 +1,4 @@
+{
+  "tests/test_publisher.py::TestPublisher::test_raise_attribute_error_on_wrong_name": true,
+  "tests/test_subscriber.py::TestSubscriber::test_comparison_not_equal": true
+}
