@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import unittest
-from eeee import Event, subscribe, Publisher
-from eeee.loop import EventLoop
+
+from cl import Loop
+
+from eeee import Event, Publisher, subscribe
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
@@ -87,7 +89,7 @@ class TestPublishMessage(unittest.TestCase):
         async def second_all(message, publisher, event):
             return [message, publisher, event]
 
-        with EventLoop(event.publish('test message')) as loop:
+        with Loop(event.publish('test message')) as loop:
             result = loop.run_until_complete()
 
         self.assertEqual(len(result), 2)
@@ -109,7 +111,7 @@ class TestPublishMessage(unittest.TestCase):
         async def second_sp(message, publisher, event):
             return ['received', publisher, event]
 
-        with EventLoop(event.publish('secret message', Publisher('secret'))) as loop:
+        with Loop(event.publish('secret message', Publisher('secret'))) as loop:
             result = loop.run_until_complete()
 
         self.assertEqual(len(result), 1)
@@ -131,7 +133,7 @@ class TestPublishMessage(unittest.TestCase):
         async def second_sp(message, publisher, event):
             return ['received', publisher, event]
 
-        with EventLoop(event.publish('secret message', Publisher('broadcast'))) as loop:
+        with Loop(event.publish('secret message', Publisher('broadcast'))) as loop:
             result = loop.run_until_complete()
 
         self.assertEqual(len(result), 1)
@@ -145,7 +147,7 @@ class TestPublishMessage(unittest.TestCase):
 
         self.assertEqual(len(event.pub_sub), 0)
 
-        with EventLoop(event.publish('enter the void')) as loop:
+        with Loop(event.publish('enter the void')) as loop:
             result = loop.run_until_complete()
 
         self.assertIsNone(result)
@@ -159,7 +161,7 @@ class TestPublishMessage(unittest.TestCase):
         async def funny_handler(message, publisher, event):
             return [message, publisher, event]
 
-        with EventLoop(event.publish('sad message')) as loop:
+        with Loop(event.publish('sad message')) as loop:
             result = loop.run_until_complete()
 
         self.assertIsNone(result)

@@ -6,6 +6,39 @@ Extremely Easy Event Emitter
 :Author: Paweł Zadrożny @pawelzny <pawel.zny@gmail.com>
 
 
+.. image:: https://circleci.com/gh/pawelzny/eeee.svg?style=shield&circle-token=90b9c0d59ae2fc9bf938c6771ada821fd39ce954
+   :target: https://circleci.com/gh/pawelzny/eeee
+   :alt: CI Status
+
+.. image:: https://readthedocs.org/projects/eeee/badge/?version=latest
+   :target: http://eeee.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
+.. image:: https://img.shields.io/pypi/v/eeee.svg
+   :target: https://pypi.org/project/eeee/
+   :alt: PyPI Repository Status
+
+.. image:: https://img.shields.io/github/release/pawelzny/eeee.svg
+   :target: https://github.com/pawelzny/eeee
+   :alt: Release Status
+
+.. image:: https://img.shields.io/pypi/status/eeee.svg
+   :target: https://pypi.org/project/eeee/
+   :alt: Project Status
+
+.. image:: https://img.shields.io/pypi/pyversions/eeee.svg
+   :target: https://pypi.org/project/eeee/
+   :alt: Supported python versions
+
+.. image:: https://img.shields.io/pypi/implementation/eeee.svg
+   :target: https://pypi.org/project/eeee/
+   :alt: Supported interpreters
+
+.. image:: https://img.shields.io/pypi/l/eeee.svg
+   :target: https://github.com/pawelzny/eeee/blob/master/LICENSE
+   :alt: License
+
+
 Features
 ========
 

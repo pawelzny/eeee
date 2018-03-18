@@ -15,12 +15,13 @@ def subscribe(event: "Event", publisher: Union["Publisher", str] = None):
     """Decorator function which subscribe callable to event.
 
     :Example:
-        Create event, and use decorator to subscribe any callable::
+    .. code-block:: python
 
-            >>> my_event = Event('MyEvent')
-            >>> @subscribe(my_event, publisher='incoming webhook')
-            ... async def incoming_webhook_handler(message, publisher, event):
-            ...    pass # doo something
+        >>> my_event = Event('MyEvent')
+        >>> @subscribe(my_event, publisher='incoming webhook')
+        ... async def incoming_webhook_handler(message, publisher, event):
+        ...    pass # doo something
+        ...
 
     :param event: Event Event object
     :type event: eeee.event.Event
@@ -34,8 +35,8 @@ def subscribe(event: "Event", publisher: Union["Publisher", str] = None):
     def wrapper(subscriber: callable):
         """Register subscriber to event.
 
-        :param subscriber: Callable handler.
-        :type subscriber: callable
+        :param subscriber: Async function or class with async __call__ method
+        :type subscriber: eeee.event.Subscriber, callable
         :return: subscriber
         """
         subscriber = Subscriber(subscriber)
@@ -52,13 +53,15 @@ class Event:
     Register subscribers to this event and publish message asynchronously.
 
     :Example:
-        Create new Event called 'MyEvent',
-        and publish dict as message::
+    .. code-block:: python
 
-            >>> my_event = Event('MyEvent')
-            >>> result = await my_event.publish({'message': 'secret'})
+        >>> my_event = Event('MyEvent')
+        >>> result = await my_event.publish({'message': 'secret'})
 
-        Result will contain list with values returned by handlers.
+    Result will contain list with values returned by handlers.
+
+    :param name: Optional Event name. If empty will be assigned to name of Class.
+    :type name: eeee.event.Event, str
     """
 
     RETURN_EXCEPTIONS = False
@@ -66,9 +69,14 @@ class Event:
 
     _PubSub = namedtuple('PubSub', ['subscriber', 'publisher'])
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Union["Event", str] = None):
         if name is None:
             name = self.__class__.__name__
+        elif isinstance(name, self.__class__):
+            name = name.name
+        elif type(name) is not str:
+            raise exceptions.NamingError(types=[self.__class__, str], wrong=str(type(name)))
+
         self.name = name
         self.pub_sub = tuple()
         self.__is_enable = True
@@ -88,23 +96,27 @@ class Event:
         Any subscriber can listen to all or only to one publisher within event.
 
         :Example:
-            Secret message will be passed to handlers which listen to 'secret publisher'
-            or to handlers which set publisher to None (default)::
+        Secret message will be passed to handlers which listen to 'secret publisher'
+        or to handlers which set publisher to None (default)
 
-                >>> my_event = Event('MyEvent')
-                >>> result = await my_event.publish({'message': 'secret'},
-                ...                                 Publisher('secret publisher'))
+        .. code-block:: python
 
-            When publisher is set to None, message will be passed only to
-            handlers which set publisher to None (default)::
+            >>> my_event = Event('MyEvent')
+            >>> result = await my_event.publish({'message': 'secret'},
+            ...                                 Publisher('secret publisher'))
 
-                >>> broadcast = Event('Broadcast')
-                >>> result = await broadcast.publish({'message': 'non secret'})
+        When publisher is set to None, message will be passed only to
+        handlers which set publisher to None (default)
+
+        .. code-block:: python
+
+            >>> broadcast = Event('Broadcast')
+            >>> result = await broadcast.publish({'message': 'non secret'})
 
         :param message: Literally anything.
         :type message: Any
-        :param publisher: Optional Publisher.
-        :type publisher: eeee.event.Publisher
+        :param publisher: Optional name or instance of Publisher
+        :type publisher: eeee.event.Publisher, str
         :return: List of results from subscribed handlers or None if event is disabled.
         """
         if self.is_enable:
@@ -122,16 +134,16 @@ class Event:
         """Subscribe decorator integrated within Event object.
 
         :Example:
-            Can be used instead of standalone @subscribe decorator::
+        .. code-block:: python
 
-                >>> my_event = Event('MyEvent')
-                >>> @my_event.subscribe(publisher='incoming_webhook')
-                ... async def incoming_webhook_handler(message, publisher, event):
-                ...     pass # doo something
+            >>> my_event = Event('MyEvent')
+            >>> @my_event.subscribe(publisher='incoming_webhook')
+            ... async def incoming_webhook_handler(message, publisher, event):
+            ...     pass # doo something
 
-            Subscribe method must be called to decorate handler.
+        Subscribe method must be called to decorate handler.
 
-        :param publisher: Optional publisher instance.
+        :param publisher: Optional name or instance of Publisher
         :type publisher: eeee.event.Publisher, str
         :return: subscribe decorator
         """
@@ -144,13 +156,13 @@ class Event:
         If publisher had been set on subscribe, then must be provided as well.
 
         :Example:
-            Unsubscribe existing handler::
+        .. code-block:: python
 
-                >>> my_event = Event('MyEvent')
-                >>> my_event.unsubscribe(event_handler, 'secret publisher')
+            >>> my_event = Event('MyEvent')
+            >>> my_event.unsubscribe(event_handler, 'secret publisher')
 
-        :param subscriber: Callable handler.
-        :type subscriber: callable
+        :param subscriber: Async function or class with async __call__ method
+        :type subscriber: eeee.event.Subscriber, callable
         :param publisher: Optional name or instance of Publisher
         :type publisher: eeee.event.Publisher, str
         """
@@ -194,8 +206,8 @@ class Event:
                  publisher: Union["Publisher", str] = None):
         """Append subscriber to list of subscribers.
 
-        :param subscriber: Callable handler.
-        :type subscriber: callable
+        :param subscriber: Async function or class with async __call__ method
+        :type subscriber: eeee.event.Subscriber, callable
         :param publisher: Optional name or instance of Publisher
         :type publisher: eeee.event.Publisher, str
         """
@@ -213,31 +225,38 @@ class Publisher:
     Publisher is not a singleton.
 
     :Example:
-        Create publisher and use multiple times or in case of import clash
-        create new instance of the same name::
+    Create publisher and use multiple times or in case of import clash
+    create new instance of the same name
 
-            >>> broadcaster = Publisher('Broadcaster')
-            >>> broadcaster_clone = Publisher('Broadcaster')
-            >>> broadcaster == broadcaster_clone
-            True
+    .. code-block:: python
 
-            >>> broadcaster == 'Broadcaster'
-            True
+        >>> broadcaster = Publisher('Broadcaster')
+        >>> broadcaster_clone = Publisher('Broadcaster')
+        >>> broadcaster == broadcaster_clone
+        True
 
-            >>> broadcaster is broadcaster_clone
-            False
+        >>> broadcaster == 'Broadcaster'
+        True
 
-        One instance may be input for new one which creates a copy::
+        >>> broadcaster is broadcaster_clone
+        False
 
-            >>> fancy = Publisher('Fancy')
-            >>> fancy_clone = Publisher(fancy)
-            >>> fancy is fancy_clone
-            False
+    One instance may be input for new one which creates a copy
 
-            >>> fancy.name == fancy_clone.name
-            True
+    .. code-block:: python
 
+        >>> fancy = Publisher('Fancy')
+        >>> fancy_clone = Publisher(fancy)
+        >>> fancy is fancy_clone
+        False
+
+        >>> fancy.name == fancy_clone.name
+        True
+
+    :param name: Name of Publisher
+    :type name: eeee.event.Publisher, str
     """
+
     def __init__(self, name: Union["Publisher", str]):
         if isinstance(name, self.__class__):
             name = name.name
@@ -281,24 +300,28 @@ class Subscriber:
     Subscriber is not a singleton.
 
     :Example:
-        Create subscriber with coroutine::
+    .. code-block:: python
 
-            >>> async def default_handler(message, publisher, event):
-            ...     pass
-            ...
-            >>> sub = Subscriber(default_handler)
-            >>> sub_clone = Subscriber(default_handler)
-            >>> sub == 'default_handler'
-            True
+        >>> async def default_handler(message, publisher, event):
+        ...     pass
+        ...
+        >>> sub = Subscriber(default_handler)
+        >>> sub_clone = Subscriber(default_handler)
+        >>> sub == 'default_handler'
+        True
 
-            >>> sub == sub_clone
-            True
+        >>> sub == sub_clone
+        True
 
-            >>> sub is sub_clone
-            False
+        >>> sub is sub_clone
+        False
 
-            >>> result = await sub('a message', Publisher('global'), 'mock event')
-        """
+        >>> result = await sub('a message', Publisher('global'), 'mock event')
+
+    :param handler: Async function or class with async __call__ method
+    :type handler: eeee.event.Subscriber, callable
+    """
+
     def __init__(self, handler: Union["Subscriber", callable]):
         if isinstance(handler, self.__class__):
             self.handler = handler.handler

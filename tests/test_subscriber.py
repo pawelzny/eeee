@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+from cl import Loop
+
 from eeee import exceptions
 from eeee.event import Subscriber
-from eeee.loop import EventLoop
 
 __author__ = 'Paweł Zadrożny'
 __copyright__ = 'Copyright (c) 2018, Pawelzny'
@@ -85,7 +86,7 @@ class TestSubscriberExecute(unittest.TestCase):
             return [message, publisher, event]
 
         sub = Subscriber(test_func)
-        with EventLoop(sub('some message', None, 'test')) as loop:
+        with Loop(sub('some message', None, 'test')) as loop:
             result = loop.run_until_complete()
 
         self.assertEqual(result[0], 'some message')
@@ -98,7 +99,7 @@ class TestSubscriberExecute(unittest.TestCase):
                 return [message, publisher, event]
 
         sub = Subscriber(TestCls())
-        with EventLoop(sub('some message', None, 'test')) as loop:
+        with Loop(sub('some message', None, 'test')) as loop:
             result = loop.run_until_complete()
 
         self.assertEqual(result[0], 'some message')

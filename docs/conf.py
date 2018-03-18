@@ -48,6 +48,8 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.autosectionlabel',
+    'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.graphviz',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -165,3 +167,7 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
+
+inheritance_graph_attrs = {
+    'rankdir': 'TB',
+}
