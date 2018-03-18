@@ -38,7 +38,10 @@ class NamingError(EeeeTypeError):
         if message is not None:
             self.message = message
         elif types and wrong:
-            self.message = f'{self.message} Must be one of type: {types}, got {wrong} instead.'
+            self.message = ('{message} Must be one of type: {types}, '
+                            'got {wrong} instead.'.format(message=self.message,
+                                                          types=types,
+                                                          wrong=wrong))
         super().__init__(self.message)
 
 
