@@ -10,7 +10,7 @@ install: ## install dependencies
 install-dev: install ## install dev dependencies
 	pipenv install --dev
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-cache
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -22,18 +22,24 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
+clean-cache: ## remove .cache and .pytest_cache
+	rm -rf .cache
+	rm -rf .pytest_cache
+
 lint: ## check style with flake8
-	pipenv run flake8 eeee tests
+	pipenv run flake8
 
 test: ## run tests quickly with the default Python
 	pipenv run pytest
 
 test-all: ## run tests on every Python version with tox
+	rm -rf .tox
 	pipenv run tox --skip-missing-interpreters
 
 coverage: ## check code coverage quickly with the default Python
 	rm -rf htmlcov
-	pipenv run coverage run --source eeee -m pytest
+	pipenv run coverage erase
+	pipenv run coverage run -m pytest
 	pipenv run coverage report -m
 	pipenv run coverage html
 

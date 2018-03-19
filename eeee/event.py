@@ -62,6 +62,7 @@ class Event:
 
     :param name: Optional Event name. If empty will be assigned to name of Class.
     :type name: eeee.event.Event, str
+    :raises: eeee.exceptions.NamingError
     """
 
     RETURN_EXCEPTIONS = False
@@ -119,16 +120,16 @@ class Event:
         :type publisher: eeee.event.Publisher, str
         :return: List of results from subscribed handlers or None if event is disabled.
         """
-        if self.is_enable:
-            if publisher is not None:
-                publisher = Publisher(publisher)
-            coros = []
-            for ps in self.pub_sub:
-                if ps.publisher is None or (publisher is not None and ps.publisher == publisher):
-                    coros.append(ps.subscriber(message, publisher, event=self.name))
-            if coros:
-                return await asyncio.gather(*coros, return_exceptions=self.RETURN_EXCEPTIONS)
-        return None
+        if not self.is_enable:
+            return None
+
+        publisher = Publisher(publisher) if publisher else publisher
+
+        coros = []
+        for ps in self.pub_sub:
+            if ps.publisher is None or (publisher is not None and ps.publisher == publisher):
+                coros.append(ps.subscriber(message, publisher, event=self.name))
+        return await asyncio.gather(*coros, return_exceptions=self.RETURN_EXCEPTIONS)
 
     def subscribe(self, publisher: Union["Publisher", str] = None):
         """Subscribe decorator integrated within Event object.
@@ -279,10 +280,11 @@ class Publisher:
         return False
 
     @property
-    def id(self):
+    def id(self) -> str:
         """Publisher identification.
 
         :return: string ID
+        :rtype: str
         """
         return self.__id
 
@@ -323,24 +325,11 @@ class Subscriber:
     """
 
     def __init__(self, handler: Union["Subscriber", callable]):
-        if isinstance(handler, self.__class__):
-            self.handler = handler.handler
-            self.name = handler.name
-        elif callable(handler):
-            try:
-                self.name = handler.__name__
-                self.handler = handler
-                is_coro = iscoroutinefunction(handler)
-            except AttributeError:
-                # assume instance of callable class
-                self.name = handler.__class__.__name__
-                self.handler = handler
-                is_coro = iscoroutinefunction(handler.__call__)
+        self.name, self.handler = _parse_handler(handler)
 
-            if not is_coro:
-                raise exceptions.NotCoroutineError
-        else:
-            raise exceptions.NotCallableError
+        # handler validation
+        _is_callable(self.handler)
+        _is_coro(self.handler)
 
         self.__template = str(self.__class__) + '{name}</class>'
         self.__id = self.__template.format(name=self.name)
@@ -352,13 +341,66 @@ class Subscriber:
             return self.id == self.__template.format(name=other)
         return False
 
-    async def __call__(self, *args, **kwargs):
-        return await self.handler(*args, **kwargs)
+    async def __call__(self, message, publisher, event):
+        return await self.handler(message=message, publisher=publisher, event=event)
 
     @property
     def id(self):
         """Subscriber identification.
 
         :return: string ID
+        :rtype: str
         """
         return self.__id
+
+
+def _parse_handler(handler: Union[callable, object, Subscriber]):
+    """Parse handler name and body.
+
+    Function accept functions, callable object and instance of Subscriber.
+    If Subscriber has been given, parser will extract its name and handler.
+
+    :param handler:
+    :return:
+    """
+    if isinstance(handler, Subscriber):
+        return handler.name, handler.handler
+
+    try:
+        name = handler.__name__
+    except AttributeError:
+        # assume instance of callable object
+        name = handler.__class__.__name__
+
+    return name, handler
+
+
+def _is_callable(handler: Union[callable, object]):
+    """Check if handler is callable.
+
+    :param handler: Function or callable object.
+    :type handler: callable, object
+    :raises: eeee.exception.NotCallableError
+    :return: None
+    """
+    if not callable(handler):
+        raise exceptions.NotCallableError
+
+
+def _is_coro(handler: Union[callable, object]):
+    """Check if handler is coroutine.
+
+    Class with async __call__ method is considered a coroutine.
+
+    :param handler: Function or callable object.
+    :type handler: callable, object
+    :raises: eeee.exceptions.NotCoroutineError
+    :return: None
+    """
+    try:
+        is_coro = iscoroutinefunction(handler) or iscoroutinefunction(handler.__call__)
+    except AttributeError:
+        is_coro = False
+
+    if not is_coro:
+        raise exceptions.NotCoroutineError

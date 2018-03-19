@@ -150,7 +150,7 @@ class TestPublishMessage(unittest.TestCase):
         with Loop(event.publish('enter the void')) as loop:
             result = loop.run_until_complete()
 
-        self.assertIsNone(result)
+        self.assertListEqual(result, [])
 
     def test_publish_on_disabled_event(self):
         event = Event('disabled')

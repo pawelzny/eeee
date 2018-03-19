@@ -47,7 +47,18 @@ class TestSubscriberHandler(unittest.TestCase):
         with self.assertRaises(exceptions.NotCoroutineError):
             Subscriber(handler)
 
-    def test_raise_handler_error(self):
+    def test_handler_of_wrong_type(self):
+        with self.assertRaises(exceptions.HandlerError):
+            Subscriber(tuple)
+
+    def test_not_callable_object_handler(self):
+        class NotCallable:
+            name = 'test'
+
+        with self.assertRaises(exceptions.HandlerError):
+            Subscriber(NotCallable())
+
+    def test_raise_not_error(self):
         with self.assertRaises(exceptions.NotCallableError):
             Subscriber('foo')
 
