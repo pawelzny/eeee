@@ -15,6 +15,7 @@ def subscribe(event: "Event", publisher: Union["Publisher", str] = None):
     """Decorator function which subscribe callable to event.
 
     :Example:
+
     .. code-block:: python
 
         >>> my_event = Event('MyEvent')
@@ -53,6 +54,7 @@ class Event:
     Register subscribers to this event and publish message asynchronously.
 
     :Example:
+
     .. code-block:: python
 
         >>> my_event = Event('MyEvent')
@@ -62,7 +64,7 @@ class Event:
 
     :param name: Optional Event name. If empty will be assigned to name of Class.
     :type name: eeee.event.Event, str
-    :raises: eeee.exceptions.NamingError
+    :raises eeee.exceptions.NamingError: Naming error
     """
 
     RETURN_EXCEPTIONS = False
@@ -97,6 +99,7 @@ class Event:
         Any subscriber can listen to all or only to one publisher within event.
 
         :Example:
+
         Secret message will be passed to handlers which listen to 'secret publisher'
         or to handlers which set publisher to None (default)
 
@@ -135,6 +138,7 @@ class Event:
         """Subscribe decorator integrated within Event object.
 
         :Example:
+
         .. code-block:: python
 
             >>> my_event = Event('MyEvent')
@@ -157,6 +161,7 @@ class Event:
         If publisher had been set on subscribe, then must be provided as well.
 
         :Example:
+
         .. code-block:: python
 
             >>> my_event = Event('MyEvent')
@@ -226,6 +231,7 @@ class Publisher:
     Publisher is not a singleton.
 
     :Example:
+
     Create publisher and use multiple times or in case of import clash
     create new instance of the same name
 
@@ -302,6 +308,7 @@ class Subscriber:
     Subscriber is not a singleton.
 
     :Example:
+
     .. code-block:: python
 
         >>> async def default_handler(message, publisher, event):
@@ -319,6 +326,7 @@ class Subscriber:
         False
 
         >>> result = await sub('a message', Publisher('global'), 'mock event')
+
 
     :param handler: Async function or class with async __call__ method
     :type handler: eeee.event.Subscriber, callable
@@ -360,8 +368,10 @@ def _parse_handler(handler: Union[callable, object, Subscriber]):
     Function accept functions, callable object and instance of Subscriber.
     If Subscriber has been given, parser will extract its name and handler.
 
-    :param handler:
-    :return:
+    :param handler: Function or callable object.
+    :type handler: callable, object
+    :return: Name and handler tuple
+    :rtype: tuple
     """
     if isinstance(handler, Subscriber):
         return handler.name, handler.handler
@@ -380,7 +390,7 @@ def _is_callable(handler: Union[callable, object]):
 
     :param handler: Function or callable object.
     :type handler: callable, object
-    :raises: eeee.exception.NotCallableError
+    :raises eeee.exception.NotCallableError: Not callable error
     :return: None
     """
     if not callable(handler):
@@ -394,7 +404,7 @@ def _is_coro(handler: Union[callable, object]):
 
     :param handler: Function or callable object.
     :type handler: callable, object
-    :raises: eeee.exceptions.NotCoroutineError
+    :raises eeee.exceptions.NotCoroutineError: Not coroutine error
     :return: None
     """
     try:

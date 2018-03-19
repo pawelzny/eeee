@@ -60,6 +60,12 @@ Installation
 **Package**: https://pypi.org/project/eeee/
 
 
+Documentation
+=============
+
+Read full documentation at http://eeee.readthedocs.io/en/stable/
+
+
 Quick Example
 =============
 

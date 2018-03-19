@@ -13,8 +13,7 @@ Publish/Subscribe
 Event
 =====
 
-.. py:module:: eeee.event
-.. autoclass:: Event
+.. autoclass:: eeee.event.Event
    :member-order: bysource
    :members:
 
@@ -22,8 +21,7 @@ Event
 Publisher
 =========
 
-.. py:module:: eeee.event
-.. autoclass:: Publisher
+.. autoclass:: eeee.event.Publisher
    :member-order: bysource
    :members:
 
@@ -31,8 +29,7 @@ Publisher
 Subscriber
 ==========
 
-.. py:module:: eeee.event
-.. autoclass:: Subscriber
+.. autoclass:: eeee.event.Subscriber
    :member-order: bysource
    :members:
 
